@@ -878,9 +878,120 @@ Svg_parser::parser_defs(const xmlpp::Node* node){
 				parser_linearGradient(*iter);
 			}else if(name.compare("radialGradient")==0){
 				parser_radialGradient(*iter);
+			}else if(name.compare("filter")==0){
+				parser_filter(*iter);
 			}
  		}
   	}
+}
+
+void
+Svg_parser::parser_linearGradient(const xmlpp::Node* node){
+	if(const xmlpp::Element* nodeElement = dynamic_cast<const xmlpp::Element*>(node)){
+		Glib::ustring id	=nodeElement->get_attribute_value("id");
+		float x1			=atof(nodeElement->get_attribute_value("x1").data());
+		float y1			=atof(nodeElement->get_attribute_value("y1").data());
+		float x2			=atof(nodeElement->get_attribute_value("x2").data());
+		float y2			=atof(nodeElement->get_attribute_value("y2").data());
+		Glib::ustring link	=nodeElement->get_attribute_value("href");
+		Glib::ustring transform	=nodeElement->get_attribute_value("gradientTransform");
+
+		if(link.empty())
+			link = nodeElement->get_attribute_value("href","xlink");			
+
+		//resolve transformations
+		SVGMatrix* mtx=NULL;
+		if(!transform.empty())
+			mtx=parser_transform (transform);
+
+		std::list<ColorStop*> *stops;
+		if(!link.empty()){
+			stops=find_colorStop (link);
+		}else{
+			//color stops
+			stops=new std::list<ColorStop*>();
+			const xmlpp::ContentNode* nodeContent = dynamic_cast<const xmlpp::ContentNode*>(node);
+			if(!nodeContent){
+    			xmlpp::Node::NodeList list = node->get_children();
+    			for(xmlpp::Node::NodeList::iterator iter = list.begin(); iter != list.end(); ++iter){
+					Glib::ustring name =(*iter)->get_name();
+					if(name.compare("stop")==0){
+						const xmlpp::Element* nodeIter = dynamic_cast<const xmlpp::Element*>(*iter);
+						Glib::ustring style	=nodeIter->get_attribute_value("style");
+						float offset=atof(nodeIter->get_attribute_value("offset").data());
+						String stop_color;
+						String opacity;
+						if(!style.empty()){
+							extractSubAttribute (style,"stop-color",&stop_color);
+							extractSubAttribute (style,"stop-opacity",&opacity);
+						}
+						if(opacity.empty()) opacity="1";
+						if(stop_color.empty()) stop_color="#000000";//black for default :S
+						stops->push_back(newColorStop(stop_color,atof(opacity.data()),offset));
+					}
+    			}
+			}
+		}
+		if(stops)
+			lg.push_back(newLinearGradient(id,x1,y1,x2,y2,stops,mtx));
+	}
+}
+
+void
+Svg_parser::parser_radialGradient(const xmlpp::Node* node){
+	if(const xmlpp::Element* nodeElement = dynamic_cast<const xmlpp::Element*>(node)){
+		Glib::ustring id	=nodeElement->get_attribute_value("id");
+		float cx			=atof(nodeElement->get_attribute_value("cx").data());
+		float cy			=atof(nodeElement->get_attribute_value("cy").data());
+		float fx			=atof(nodeElement->get_attribute_value("fx").data());
+		float fy			=atof(nodeElement->get_attribute_value("fy").data());
+		float r				=atof(nodeElement->get_attribute_value("r").data());
+		Glib::ustring link	=nodeElement->get_attribute_value("href");//basic
+		Glib::ustring transform	=nodeElement->get_attribute_value("gradientTransform");
+
+		if(link.empty())
+			link = nodeElement->get_attribute_value("href","xlink");
+
+		if (cx!=fx || cy!=fy)
+			std::cout<<"SVG Parser: ignoring focus attributes for radial gradient";
+
+		//resolve transformations
+		SVGMatrix* mtx=NULL;
+		if(!transform.empty())
+			mtx=parser_transform (transform);
+
+		std::list<ColorStop*> *stops=NULL;
+		if(!link.empty()){
+			//inkscape always use link, i dont need parser stops here, but it's posible
+			stops=find_colorStop (link);
+		}
+		if(stops)
+			rg.push_back(newRadialGradient(id,cx,cy,r,stops,mtx));
+	}
+}
+
+void
+Svg_parser::parser_filter(const xmlpp::Node* node)
+{
+	if(const xmlpp::Element* nodeElement = dynamic_cast<const xmlpp::Element*>(node))
+	{
+		Glib::ustring id = nodeElement->get_attribute_value("id");
+		float x = atof(nodeElement->get_attribute_value("x").data());
+		float y = atof(nodeElement->get_attribute_value("y").data());
+		float width = atof(nodeElement->get_attribute_value("width").data());
+		float height = atof(nodeElement->get_attribute_value("height").data());
+/*		xmlpp::Node::NodeList list = node->get_children();
+		list<Filter> filter_list;
+		if (list.empty())
+			return;
+		for(xmlpp::Node::NodeList::iterator iter = list.begin(); iter != list.end(); ++iter)
+		{
+			Glib::ustring name =(*iter)->get_name();
+			if(filter_type_map.find(name) == filter_type_map.end())
+				filter_type_map[].parseSVG(name, iter);
+		}
+		filter_map[id] = Filter(id,x,y,width,height,);*/
+	}	
 }
 
 /* === BUILDS ============================================================== */
@@ -1119,91 +1230,6 @@ Svg_parser::build_radialGradient(xmlpp::Element* root,RadialGradient* data,SVGMa
 
 		build_param (gradient->add_child("param"),"loop","bool","false");
 		build_param (gradient->add_child("param"),"zigzag","bool","false");
-	}
-}
-
-void
-Svg_parser::parser_linearGradient(const xmlpp::Node* node){
-	if(const xmlpp::Element* nodeElement = dynamic_cast<const xmlpp::Element*>(node)){
-		Glib::ustring id	=nodeElement->get_attribute_value("id");
-		float x1			=atof(nodeElement->get_attribute_value("x1").data());
-		float y1			=atof(nodeElement->get_attribute_value("y1").data());
-		float x2			=atof(nodeElement->get_attribute_value("x2").data());
-		float y2			=atof(nodeElement->get_attribute_value("y2").data());
-		Glib::ustring link	=nodeElement->get_attribute_value("href");
-		Glib::ustring transform	=nodeElement->get_attribute_value("gradientTransform");
-
-		if(link.empty())
-			link = nodeElement->get_attribute_value("href","xlink");			
-
-		//resolve transformations
-		SVGMatrix* mtx=NULL;
-		if(!transform.empty())
-			mtx=parser_transform (transform);
-
-		std::list<ColorStop*> *stops;
-		if(!link.empty()){
-			stops=find_colorStop (link);
-		}else{
-			//color stops
-			stops=new std::list<ColorStop*>();
-			const xmlpp::ContentNode* nodeContent = dynamic_cast<const xmlpp::ContentNode*>(node);
-			if(!nodeContent){
-    			xmlpp::Node::NodeList list = node->get_children();
-    			for(xmlpp::Node::NodeList::iterator iter = list.begin(); iter != list.end(); ++iter){
-					Glib::ustring name =(*iter)->get_name();
-					if(name.compare("stop")==0){
-						const xmlpp::Element* nodeIter = dynamic_cast<const xmlpp::Element*>(*iter);
-						Glib::ustring style	=nodeIter->get_attribute_value("style");
-						float offset=atof(nodeIter->get_attribute_value("offset").data());
-						String stop_color;
-						String opacity;
-						if(!style.empty()){
-							extractSubAttribute (style,"stop-color",&stop_color);
-							extractSubAttribute (style,"stop-opacity",&opacity);
-						}
-						if(opacity.empty()) opacity="1";
-						if(stop_color.empty()) stop_color="#000000";//black for default :S
-						stops->push_back(newColorStop(stop_color,atof(opacity.data()),offset));
-					}
-    			}
-			}
-		}
-		if(stops)
-			lg.push_back(newLinearGradient(id,x1,y1,x2,y2,stops,mtx));
-	}
-}
-
-void
-Svg_parser::parser_radialGradient(const xmlpp::Node* node){
-	if(const xmlpp::Element* nodeElement = dynamic_cast<const xmlpp::Element*>(node)){
-		Glib::ustring id	=nodeElement->get_attribute_value("id");
-		float cx			=atof(nodeElement->get_attribute_value("cx").data());
-		float cy			=atof(nodeElement->get_attribute_value("cy").data());
-		float fx			=atof(nodeElement->get_attribute_value("fx").data());
-		float fy			=atof(nodeElement->get_attribute_value("fy").data());
-		float r				=atof(nodeElement->get_attribute_value("r").data());
-		Glib::ustring link	=nodeElement->get_attribute_value("href");//basic
-		Glib::ustring transform	=nodeElement->get_attribute_value("gradientTransform");
-
-		if(link.empty())
-			link = nodeElement->get_attribute_value("href","xlink");
-
-		if (cx!=fx || cy!=fy)
-			std::cout<<"SVG Parser: ignoring focus attributes for radial gradient";
-
-		//resolve transformations
-		SVGMatrix* mtx=NULL;
-		if(!transform.empty())
-			mtx=parser_transform (transform);
-
-		std::list<ColorStop*> *stops=NULL;
-		if(!link.empty()){
-			//inkscape always use link, i dont need parser stops here, but it's posible
-			stops=find_colorStop (link);
-		}
-		if(stops)
-			rg.push_back(newRadialGradient(id,cx,cy,r,stops,mtx));
 	}
 }
 

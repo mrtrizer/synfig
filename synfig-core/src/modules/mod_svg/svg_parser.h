@@ -105,6 +105,12 @@ class Svg_parser
 public:
 
 private:
+		class Filter
+		{
+		public:
+			Filter(float x, float y, float width, float height);
+		};
+	
 		Gamma gamma;
 	 	String filepath;
 	 	String id_name;
@@ -120,6 +126,7 @@ private:
 		//urls
 		std::list<LinearGradient*> lg;
 		std::list<RadialGradient*> rg;
+		std::map<Glib::ustring, Filter> filter_map;
 
 public:
 		Svg_parser();
@@ -149,6 +156,7 @@ private:
 
 		/* === DEFS PARSERS =============================== */
 		void parser_defs(const xmlpp::Node* node);
+		void parser_filter(const xmlpp::Node* node);
 		void parser_linearGradient(const xmlpp::Node* node);
 		void parser_radialGradient(const xmlpp::Node* node);
 		ColorStop* newColorStop(String color,float opacity,float pos);
