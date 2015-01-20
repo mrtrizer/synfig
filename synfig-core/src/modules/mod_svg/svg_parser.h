@@ -36,6 +36,8 @@
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
+#include <list>
+#include <map>
 #include <glibmm/ustring.h>
 
 #include <libxml++/libxml++.h>
@@ -99,18 +101,49 @@ typedef struct bline_t{
 	String* offset_id;
 }BLine;
 
+///@brief Interface for filters.
+class Filter
+{
+public:
+	virtual ~Filter(){}
+	virtual void build (xmlpp::Element* root) = 0;
+	virtual Filter * newClone() const = 0;
+};
+
+///@brief Filter block can contain several filters.
+class FilterBlock
+{
+private:
+	std::list<Filter *> filterList;
+	double x;
+	double y;
+	double width;
+	double height;
+	
+public:
+	FilterBlock(double x, double y, double width, double height): x(x), y(y), width(width), height(height){}
+	void addFilter(const Filter & filter){filterList.push_back(filter.newClone());}
+	void build (xmlpp::Element* root){}
+};
+
+///@brief Blur filter. 
+class BlurFilter: public Filter
+{
+private:
+	double stdDeviation;
+	
+public:
+	BlurFilter(double stdDeviation): stdDeviation(stdDeviation){}
+	void build(xmlpp::Element* root){}
+	Filter * newClone() const {return new BlurFilter(*this);}
+};
+
 class Svg_parser
 {
 		//this is inkscape oriented in some cases
 public:
 
 private:
-		class Filter
-		{
-		public:
-			Filter(float x, float y, float width, float height);
-		};
-	
 		Gamma gamma;
 	 	String filepath;
 	 	String id_name;
@@ -126,7 +159,7 @@ private:
 		//urls
 		std::list<LinearGradient*> lg;
 		std::list<RadialGradient*> rg;
-		std::map<Glib::ustring, Filter> filter_map;
+		std::map<Glib::ustring, FilterBlock> filter_map;
 
 public:
 		Svg_parser();
