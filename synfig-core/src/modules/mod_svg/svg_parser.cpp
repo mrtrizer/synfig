@@ -975,11 +975,7 @@ Svg_parser::parser_filter(const xmlpp::Node* node)
 {
 	if(const xmlpp::Element* nodeElement = dynamic_cast<const xmlpp::Element*>(node))
 	{
-		Glib::ustring id = nodeElement->get_attribute_value("id");
-		float x = atof(nodeElement->get_attribute_value("x").data());
-		float y = atof(nodeElement->get_attribute_value("y").data());
-		float width = atof(nodeElement->get_attribute_value("width").data());
-		float height = atof(nodeElement->get_attribute_value("height").data());
+		
 /*		xmlpp::Node::NodeList list = node->get_children();
 		list<Filter> filter_list;
 		if (list.empty())
