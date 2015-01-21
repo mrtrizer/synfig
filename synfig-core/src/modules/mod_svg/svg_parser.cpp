@@ -104,6 +104,14 @@ Svg_parser::Svg_parser():
 	// 0.5 in gamma parameter of color correct layer is 1/0.5 = 2 (thinking) it must be 2.2!!!!
 	gamma.set_gamma(2.2);
 }
+
+Svg_parser::~Svg_parser()
+{
+	FilterMap::iterator i = filter_map.begin();
+	for (;i != filter_map.end(); i++)
+		delete i->second;
+}
+
 /*
 String
 Svg_parser::get_id(){
@@ -973,21 +981,12 @@ Svg_parser::parser_radialGradient(const xmlpp::Node* node){
 void
 Svg_parser::parser_filter(const xmlpp::Node* node)
 {
-	if(const xmlpp::Element* nodeElement = dynamic_cast<const xmlpp::Element*>(node))
-	{
-		
-/*		xmlpp::Node::NodeList list = node->get_children();
-		list<Filter> filter_list;
-		if (list.empty())
-			return;
-		for(xmlpp::Node::NodeList::iterator iter = list.begin(); iter != list.end(); ++iter)
-		{
-			Glib::ustring name =(*iter)->get_name();
-			if(filter_type_map.find(name) == filter_type_map.end())
-				filter_type_map[].parseSVG(name, iter);
-		}
-		filter_map[id] = Filter(id,x,y,width,height,);*/
-	}	
+	std::cout << "Filter" << std::endl;
+	Filter * filter = Filter::parseFilterNode(node);
+	if (filter == 0)
+		return;
+	std::cout << filter->toString() << std::endl;
+	filter_map[filter->getId()] = filter;
 }
 
 /* === BUILDS ============================================================== */
@@ -1232,6 +1231,7 @@ Svg_parser::build_radialGradient(xmlpp::Element* root,RadialGradient* data,SVGMa
 ColorStop*
 Svg_parser::newColorStop(String color,float opacity,float pos){
 	ColorStop* _stop;
+	//TODO: leak
 	_stop=(ColorStop*)malloc(sizeof(ColorStop));
 	float r=getRed(color);
 	float g=getGreen(color);
@@ -1272,6 +1272,7 @@ Svg_parser::adjustGamma(float r,float g,float b,float a){
 LinearGradient*
 Svg_parser::newLinearGradient(String name,float x1,float y1, float x2,float y2,std::list<ColorStop*> *stops, SVGMatrix* transform){
 	LinearGradient* data;
+	//TODO: leak
 	data=(LinearGradient*)malloc(sizeof(LinearGradient));
 	sprintf(data->name,"%s",name.data());
 	data->x1=x1;
@@ -1286,6 +1287,7 @@ Svg_parser::newLinearGradient(String name,float x1,float y1, float x2,float y2,s
 RadialGradient*
 Svg_parser::newRadialGradient(String name,float cx,float cy,float r,std::list<ColorStop*> *stops, SVGMatrix* transform){
 	RadialGradient* data;
+	//TODO: leak
 	data=(RadialGradient*)malloc(sizeof(RadialGradient));
 	sprintf(data->name,"%s",name.data());
 	data->cx=cx;
@@ -1299,6 +1301,7 @@ Svg_parser::newRadialGradient(String name,float cx,float cy,float r,std::list<Co
 BLine*
 Svg_parser::newBLine(std::list<Vertex*> *points,bool loop){
 	BLine* data;
+	//TODO: leak
 	data=(BLine*)malloc(sizeof(BLine));
 	//sprintf(data->name,"%s",name.data());
 	data->points=new std::list<Vertex*> (*points);
@@ -1353,8 +1356,10 @@ Svg_parser::build_vertex(xmlpp::Element* root , Vertex *p){
 	build_vector (child_comp->add_child("param"),"point",p->x,p->y);
 	build_param (child_comp->add_child("width"),"","real","1.0000000000");
 	build_param (child_comp->add_child("origin"),"","real","0.5000000000");
-	if(p->split) build_param (child_comp->add_child("split"),"","bool","true");
-	else build_param (child_comp->add_child("split"),"","bool","false");
+	if(p->split) 
+		build_param (child_comp->add_child("split"),"","bool","true");
+	else 
+		build_param (child_comp->add_child("split"),"","bool","false");
 	//tangent 1
 	xmlpp::Element *child_t1=child_comp->add_child("t1");
 	xmlpp::Element *child_rc=child_t1->add_child("radial_composite");
@@ -1381,7 +1386,8 @@ Svg_parser::build_bline(xmlpp::Element* root,std::list<Vertex*> p,bool loop,Stri
 	if(!blineguid.empty())	child->set_attribute("guid",blineguid);
 	std::list<Vertex*>::iterator aux = p.begin();
 	while(aux!=p.end()){
-		if(*aux) build_vertex (child->add_child("entry"),*aux);
+		if(*aux) 
+			build_vertex (child->add_child("entry"),*aux);
 		aux++;
 	}
 }
@@ -1389,7 +1395,8 @@ Svg_parser::build_bline(xmlpp::Element* root,std::list<Vertex*> p,bool loop,Stri
 void
 Svg_parser::build_param(xmlpp::Element* root,String name,String type,String value){
 	if(!type.empty() && !value.empty()){
-		if(!name.empty())	root->set_attribute("name",name);
+		if(!name.empty())
+			root->set_attribute("name",name);
 		xmlpp::Element *child=root->add_child(type);
 		child->set_attribute("value",value);
 	}else{
@@ -1399,7 +1406,8 @@ Svg_parser::build_param(xmlpp::Element* root,String name,String type,String valu
 void
 Svg_parser::build_param(xmlpp::Element* root,String name,String type,float value){
 	if(!type.empty()){
-		if(!name.empty()) root->set_attribute("name",name);
+		if(!name.empty()) 
+			root->set_attribute("name",name);
 		xmlpp::Element *child=root->add_child(type);
 		child->set_attribute("value",etl::strprintf ("%f",value));
 	}else{
@@ -1409,12 +1417,14 @@ Svg_parser::build_param(xmlpp::Element* root,String name,String type,float value
 void
 Svg_parser::build_param(xmlpp::Element* root,String name,String type,int value){
 	if(!type.empty()){
-			if(!name.empty()) root->set_attribute("name",name);
-			xmlpp::Element *child=root->add_child(type);
-			char *enteroc=new char[10];
-			sprintf(enteroc,"%d",value);
-			child->set_attribute("value",enteroc);
-			delete [] enteroc;
+		if(!name.empty()) 
+			root->set_attribute("name",name);
+		xmlpp::Element *child=root->add_child(type);
+		//TODO: Why is it dynamic?
+		char *enteroc=new char[10];
+		sprintf(enteroc,"%d",value);
+		child->set_attribute("value",enteroc);
+		delete [] enteroc;
 	}else{
 		root->get_parent()->remove_child(root);
 	}
@@ -1422,16 +1432,20 @@ Svg_parser::build_param(xmlpp::Element* root,String name,String type,int value){
 
 void
 Svg_parser::build_integer(xmlpp::Element* root,String name,int value){
-	if(name.compare("")!=0) root->set_attribute("name",name);
+	if(name.compare("")!=0) 
+		root->set_attribute("name",name);
 	xmlpp::Element *child=root->add_child("integer");
+	//TODO:leak?
 	char *enteroc=new char[10];
 	sprintf(enteroc,"%d",value);
 	child->set_attribute("value",enteroc);
 }
 void
 Svg_parser::build_real(xmlpp::Element* root,String name,float value){
-	if(name.compare("")!=0) root->set_attribute("name",name);
+	if(name.compare("")!=0) 
+		root->set_attribute("name",name);
 	xmlpp::Element *child=root->add_child("real");
+	//TODO:leak?
 	char *realc=new char[20];
 	sprintf(realc,"%f",value);
 	child->set_attribute("value",realc);
@@ -1456,7 +1470,8 @@ Svg_parser::build_color(xmlpp::Element* root,float r,float g,float b,float a){
 void
 Svg_parser::build_vector(xmlpp::Element* root,String name,float x,float y){
 
-	if(name.compare("")!=0) root->set_attribute("name",name);
+	if(name.compare("")!=0) 
+		root->set_attribute("name",name);
 	xmlpp::Element *child=root->add_child("vector");
 	child->add_child("x")->set_child_text(etl::strprintf("%f",x));
 	child->add_child("y")->set_child_text(etl::strprintf("%f",y));
@@ -1464,9 +1479,11 @@ Svg_parser::build_vector(xmlpp::Element* root,String name,float x,float y){
 }
 void
 Svg_parser::build_vector (xmlpp::Element* root,String name,float x,float y,String guid){
-	if(name.compare("")!=0) root->set_attribute("name",name);
+	if(name.compare("")!=0) 
+		root->set_attribute("name",name);
 	xmlpp::Element *child=root->add_child("vector");
-	if(!guid.empty()) child->set_attribute("guid",guid);
+	if(!guid.empty()) 
+		child->set_attribute("guid",guid);
 	child->add_child("x")->set_child_text(etl::strprintf("%f",x));
 	child->add_child("y")->set_child_text(etl::strprintf("%f",y));
 }
@@ -1599,6 +1616,8 @@ Svg_parser::isFirst(Vertex* nodo,float a, float b){
 Vertex*
 Svg_parser::newVertex(float x,float y){
 	Vertex* vert;
+	//TODO: Why is it dynamic allocate Oo ? Wny not "new"? 
+	// Where is it deallocated? Oh :(
 	vert=(Vertex*)malloc(sizeof(Vertex));
 	vert->x=x;
 	vert->y=y;
@@ -1661,6 +1680,7 @@ Svg_parser::parser_transform(const String transform){
 SVGMatrix*
 Svg_parser::newSVGMatrix(SVGMatrix *a){
 	SVGMatrix* data;
+	//TODO: leak
 	data=(SVGMatrix*)malloc(sizeof(SVGMatrix));
 	data->a=a->a;		data->b=a->b;		data->c=a->c;
 	data->d=a->d;		data->e=a->e;		data->f=a->f;
@@ -1669,6 +1689,7 @@ Svg_parser::newSVGMatrix(SVGMatrix *a){
 SVGMatrix*
 Svg_parser::newSVGMatrix(float a,float b,float c,float d,float e,float f){
 	SVGMatrix* data;
+	//TODO: leak
 	data=(SVGMatrix*)malloc(sizeof(SVGMatrix));
 	data->a=a;		data->b=b;		data->c=c;
 	data->d=d;		data->e=e;		data->f=f;
@@ -1679,6 +1700,7 @@ Svg_parser::newSVGMatrix(const String mvector){
 	if(!mvector.empty()){
 		std::vector<String> tokens=tokenize(mvector,",");
 		if(tokens.size()!=6) return newSVGMatrix(1,0,0,1,0,0);
+		//TODO: leak
 		SVGMatrix* data=(SVGMatrix*)malloc(sizeof(SVGMatrix));
 		data->a=atof(tokens.at(0).data());
 		data->b=atof(tokens.at(1).data());

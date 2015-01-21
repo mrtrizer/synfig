@@ -7,11 +7,12 @@
 class Filter_Blur: public Filter
 {
 public:
-	Filter_Blur(xmlpp::Element* node);
+	Filter_Blur(const xmlpp::Element* node);
 	void build(xmlpp::Element* root) const;
+	void parse (const xmlpp::Element* node);
 
 protected:
-	void parse (const xmlpp::Element* node);
+	Glib::ustring getString() const;
 
 private:
 	double stdDeviation;

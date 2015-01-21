@@ -109,6 +109,8 @@ class Svg_parser
 public:
 
 private:
+		typedef std::map<Glib::ustring, Filter *> FilterMap;
+	
 		Gamma gamma;
 	 	String filepath;
 	 	String id_name;
@@ -124,10 +126,11 @@ private:
 		//urls
 		std::list<LinearGradient*> lg;
 		std::list<RadialGradient*> rg;
-		std::map<Glib::ustring, FilterBlock> filter_map;
+		FilterMap filter_map;
 
 public:
 		Svg_parser();
+		~Svg_parser();
 		Canvas::Handle load_svg_canvas(std::string _filepath,String &errors, String &warnings);
 		//String get_id();
 		//void set_id(String source);

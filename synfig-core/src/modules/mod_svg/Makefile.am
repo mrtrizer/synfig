@@ -12,6 +12,7 @@ libmod_svg_la_SOURCES = main.cpp \
 	svg_parser.h \
 	svg_parser.cpp \
 	filter.h \
+	filter.cpp \
 	filterblock.h \
 	filterblock.cpp \
 	filters/filter_blur.h \

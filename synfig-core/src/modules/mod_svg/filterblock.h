@@ -13,16 +13,16 @@
 class FilterBlock: public Filter
 {
 public:
-	FilterBlock(xmlpp::Element* node);
+	FilterBlock(const xmlpp::Element* node);
 	~FilterBlock();
 	void build (xmlpp::Element* root) const;
+	void parse (const xmlpp::Element* node);
 	
 protected:
-	void addFilter(const Filter * filter);
-	void parse (const xmlpp::Element* node);
+	Glib::ustring getString() const;
 
 private:
-	typedef std::list<const Filter *> FilterList;
+	typedef std::list<Filter *> FilterList;
 	FilterList filterList;
 	double x;
 	double y;

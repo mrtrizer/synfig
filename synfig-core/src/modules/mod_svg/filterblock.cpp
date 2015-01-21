@@ -1,17 +1,20 @@
 #include "filterblock.h"
 
 #include <cstdlib>
+#include <sstream>
+#include <iostream>
+
+#include "filter_blur.h"
 
 using namespace std;
 
-FilterBlock::FilterBlock(xmlpp::Element* node): 
+FilterBlock::FilterBlock(const xmlpp::Element* node): 
 	Filter(node), 
 	x(0.0), 
 	y(0.0), 
 	width(0.0), 
 	height(0.0)
 {
-	//The parse function is called from the Filter class constructor.
 }
 
 FilterBlock::~FilterBlock()
@@ -21,14 +24,22 @@ FilterBlock::~FilterBlock()
 		delete *i;
 }
 
-void FilterBlock::addFilter(const Filter * filter)
-{
-	filterList.push_back(filter);
-}
-
 void FilterBlock::build (xmlpp::Element* root) const
 {
+	
+}
 
+Glib::ustring FilterBlock::getString() const
+{
+	std::stringstream ss;
+	ss << "x: " << x; 
+	ss << " y: " << y; 
+	ss << " width: " << width; 
+	ss << " height: " << height << endl;
+	FilterList::const_iterator i = filterList.begin();
+	for (;i != filterList.end(); i++)
+		ss << (*i)->toString() << endl;
+	return ss.str();
 }
 
 void FilterBlock::parse (const xmlpp::Element* node)
@@ -42,6 +53,8 @@ void FilterBlock::parse (const xmlpp::Element* node)
 		return;
 	for(xmlpp::Node::NodeList::iterator iter = list.begin(); iter != list.end(); ++iter)
 	{
-		Glib::ustring name =(*iter)->get_name();
+		Filter * filter = Filter::parseFilterNode(*iter);
+		if (filter != 0)
+			filterList.push_back(filter);
 	}
 }
