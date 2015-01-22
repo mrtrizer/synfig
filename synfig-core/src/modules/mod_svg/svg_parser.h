@@ -59,6 +59,8 @@
 
 namespace synfig{
 
+class Svg_parser;
+	
 typedef struct matrix_t{
 	float a,c,e;
 	float b,d,f;
@@ -96,12 +98,16 @@ typedef struct Vertex_t{
 	bool split;
 }Vertex;
 
-typedef struct bline_t{
-	std::list<Vertex*> *points;
+class BLine
+{
+public:
+	BLine(std::list<Vertex*> &points, bool loop, Svg_parser * parser);
+
+	std::list<Vertex*> points;
 	bool loop;
-	String* bline_id;
-	String* offset_id;
-}BLine;
+	String bline_id;
+	String offset_id;
+};
 
 class Svg_parser
 {
@@ -132,6 +138,7 @@ public:
 		Svg_parser();
 		~Svg_parser();
 		Canvas::Handle load_svg_canvas(std::string _filepath,String &errors, String &warnings);
+		int getNextGUID();
 		//String get_id();
 		//void set_id(String source);
 
