@@ -1968,40 +1968,15 @@ Svg_parser::hextodec(String hex){
 		int ihex[top];
 		int i=0;
 		while(i<top){
-			if(hex.at(i)=='0')
-				ihex[i]=0;
-			else if(hex.at(i)=='1')
-				ihex[i]=1;
-			else if(hex.at(i)=='2')
-				ihex[i]=2;
-			else if(hex.at(i)=='3')
-				ihex[i]=3;
-			else if(hex.at(i)=='4')
-				ihex[i]=4;
-			else if(hex.at(i)=='5')
-				ihex[i]=5;
-			else if(hex.at(i)=='6')
-				ihex[i]=6;
-			else if(hex.at(i)=='7')
-				ihex[i]=7;
-			else if(hex.at(i)=='8')
-				ihex[i]=8;
-			else if(hex.at(i)=='9')
-				ihex[i]=9;
-			else if(hex.at(i)=='a')
-				ihex[i]=10;
-			else if(hex.at(i)=='b')
-				ihex[i]=11;
-			else if(hex.at(i)=='c')
-				ihex[i]=12;
-			else if(hex.at(i)=='d')
-				ihex[i]=13;
-			else if(hex.at(i)=='e')
-				ihex[i]=14;
-			else if(hex.at(i)=='f')
-				ihex[i]=15;
+			if ((hex.at(i) >= 'a') && (hex.at(i) <= 'f'))
+				ihex[i] = hex.at(i) - 'a' + 10;
+			else if ((hex.at(i) >= 'A') && (hex.at(i) <= 'F'))
+				ihex[i] = hex.at(i) - 'A' + 10;
+			else if ((hex.at(i) >= '0') && (hex.at(i) <= '9'))
+				ihex[i] = hex.at(i) - '0';
 			else
-				return 0;
+				//TODO: Synfig-style error message.
+				std::cout << "Color convertion error" << std::endl;
 			i++;
 		}
 		i=0;
